@@ -22,6 +22,8 @@ class MainFragment : Fragment() {
 
     @Inject
     private var viewModel: MainViewModel? = null
+    lateinit var progressBar: ProgressBar
+    lateinit var latestIcon: ImageView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -32,26 +34,27 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+        progressBar = view.findViewById(R.id.message)
+        latestIcon = view.findViewById(R.id.latest_list_icon)
 
-        viewModel!!.shopLists.observe(this, { lists ->
-            val progressBar = view.findViewById<ProgressBar>(R.id.message)
-            val latestIcon = view.findViewById<ImageView>(R.id.latest_list_icon)
+        viewModel?.doNetWorkCall()
+        progressBar.isVisible = true
+
+        viewModel!!.shopLists.observe(viewLifecycleOwner) { lists ->
 
             val shopLists = lists.map { mapShopList(it.first, it.second) }.also {
-                latestIcon?.load(it.first().iconUrl)
+                latestIcon.load(it.first().iconUrl)
             }
-
-            progressBar?.isVisible = false
-
             Log.i("LOGTAG", "LOLOLOL Is it done already?")
 
 
             // Display the list in recyclerview
             // adapter.submitList(shopLists)
-        })
-        viewModel!!.events().observe(this, {
+        }
+        viewModel!!.events().observe(viewLifecycleOwner) {
+            progressBar.isVisible = false
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-        })
+        }
     }
 
     private fun mapShopList(list: ShopListResponse, items: List<ShopListItemResponse>) =

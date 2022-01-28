@@ -8,6 +8,7 @@ import com.netguru.codereview.network.ShopListApiMock
 import com.netguru.codereview.network.ShopListRepository
 import com.netguru.codereview.network.model.ShopListItemResponse
 import com.netguru.codereview.network.model.ShopListResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -19,8 +20,17 @@ class MainViewModel : ViewModel() {
     val shopLists = MutableLiveData<List<Pair<ShopListResponse, List<ShopListItemResponse>>>>()
     private val eventLiveData = MutableLiveData<String>()
 
-    init {
-        viewModelScope.launch {
+    fun events(): LiveData<String> = eventLiveData
+    private fun getUpdateEvents() {
+        GlobalScope.launch {
+            shopListRepository.updateEvents().collect {
+                eventLiveData.postValue(it)
+            }
+        }
+    }
+
+    fun doNetWorkCall(){
+        viewModelScope.launch(Dispatchers.IO) {
             val lists = shopListRepository.getShopLists()
             val data = mutableListOf<Pair<ShopListResponse, List<ShopListItemResponse>>>()
             for (list in lists) {
@@ -30,14 +40,5 @@ class MainViewModel : ViewModel() {
             shopLists.postValue(data)
         }
         getUpdateEvents()
-    }
-
-    fun events(): LiveData<String> = eventLiveData
-    private fun getUpdateEvents() {
-        GlobalScope.launch {
-            shopListRepository.updateEvents().collect {
-                eventLiveData.postValue(it)
-            }
-        }
     }
 }
